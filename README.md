@@ -314,6 +314,11 @@ After logging in as Coordinator, upload the seed CSVs from `Documentation/DATA/`
 ## 🖥️ Role-Based Dashboards
 
 ### 👨‍🎓 Student Dashboard
+
+![Student Dashboard](Documentation/images/student_dashboard.jpg)
+![Student Roadmap](Documentation/images/student_roadmap.jpg)
+![What-If Calculator](Documentation/images/what_if_calculator.jpg)
+
 - Personal risk score with colour-coded indicator (🟢 LOW, 🟡 MEDIUM, 🔴 HIGH)
 - Consistency streak tracker (consecutive good weeks)
 - Contributing factors breakdown with progress bars
@@ -336,6 +341,10 @@ After logging in as Coordinator, upload the seed CSVs from `Documentation/DATA/`
 - Risk trend visualisation over time
 
 ### 🏛️ Coordinator Dashboard
+
+![Coordinator Dashboard](Documentation/images/coordinator_dashboard.jpg)
+![Student Management](Documentation/images/student_management.jpg)
+
 - Institute-wide statistics & risk distribution
 - Department-wise risk breakdown charts
 - Student & teacher management
