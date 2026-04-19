@@ -1,0 +1,64 @@
+# ===== OS Files =====
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ===== IDE / Editor =====
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ===== Java / Spring Boot (Backend) =====
+Backend/hackathon-app/target/
+*.jar
+*.war
+*.class
+*.log
+
+# ===== Maven =====
+Backend/hackathon-app/.mvn/wrapper/maven-wrapper.jar
+
+# ===== Node.js / React (Frontend) =====
+Frontend/node_modules/
+Frontend/dist/
+Frontend/.vite/
+*.tsbuildinfo
+
+# ===== Python / ML =====
+ML/ml/venv/
+ML/ml/__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+.eggs/
+*.so
+
+# ===== Environment Variables / Secrets =====
+.env
+.env.local
+.env.*.local
+
+# ===== Jupyter Notebooks Checkpoints =====
+.ipynb_checkpoints/
+
+# ===== Large Data Files =====
+# Uncomment if you don't want CSVs tracked:
+# *.csv
+
+# ===== Miscellaneous =====
+*.bak
+*.tmp
+*.temp
+logs/

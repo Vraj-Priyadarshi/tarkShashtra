@@ -1,0 +1,12 @@
+employee_id,full_name,email,department_code,subjects_taught,mentor_to
+T001,Dr. Rajesh Patel,rajesh.patel@ldce.ac.in,CE,"CE301:CE-A,CE301:CE-B",
+T002,Prof. Meena Shah,meena.shah@ldce.ac.in,CE,"CE302:CE-A,CE302:CE-B",
+T003,Dr. Vikram Desai,vikram.desai@ldce.ac.in,CE,"CE303:CE-A,CE303:CE-B",
+T004,Prof. Anita Sharma,anita.sharma@ldce.ac.in,CE,"CE304:CE-A,CE304:CE-B",
+T005,Dr. Suresh Kumar,suresh.kumar@ldce.ac.in,CE,"CE305:CE-A,CE305:CE-B",
+T006,Dr. Priya Mehta,priya.mehta@ldce.ac.in,ME,"ME301:ME-A,ME302:ME-A",
+T007,Prof. Ramesh Joshi,ramesh.joshi@ldce.ac.in,ME,"ME303:ME-A,ME304:ME-A",
+T008,Dr. Kavita Trivedi,kavita.trivedi@ldce.ac.in,ME,,
+T009,Dr. Amit Bhatt,amit.bhatt@ldce.ac.in,EC,"EC301:EC-A,EC302:EC-A",
+T010,Prof. Neha Pandya,neha.pandya@ldce.ac.in,EC,"EC303:EC-A,EC304:EC-A",
+T011,Prof. Arun Kumar,arun.kumar@ldce.ac.in,CE,,

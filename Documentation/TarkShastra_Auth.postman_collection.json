@@ -1,0 +1,793 @@
+{
+  "info": {
+    "name": "TarkShastra — Auth & Authorization",
+    "description": "Full test suite for TarkShastra backend Auth & Authorization.\n\n**Flow to follow (in order):**\n1. Health Check\n2. Login — first time (mustChangePassword = true)\n3. Try accessing /me BEFORE changing password → expect 403\n4. Change Password (first login)\n5. GET /me after password change → expect 200\n6. Forgot Password\n7. Validate Reset Token\n8. Reset Password\n9. Login after reset → expect mustChangePassword = false\n\n**Collection Variables:**\n- `baseUrl` — http://localhost:8080\n- `accessToken` — auto-populated by login/change-password tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "resetToken",
+      "value": "",
+      "type": "string",
+      "description": "Paste the token received in the password reset email here"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "health"]
+        },
+        "description": "Public endpoint — no auth required. Confirms the auth service is up."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Message field present', function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.message).to.equal('Auth service is running');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "200 OK — Service running",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n    \"message\": \"Auth service is running\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "2. Login — First Time (mustChangePassword = true)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"coordinator@pdeu.ac.in\",\n    \"password\": \"PDEU@Coord2026\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        },
+        "description": "Login with seeded coordinator credentials.\n\n**Seeded accounts available:**\n- coordinator@pdeu.ac.in / PDEU@Coord2026\n- coordinator@nirmauni.ac.in / Nirma@Coord2026\n- coordinator@ldeuni.ac.in / LDE@Coord2026\n\nExpect `mustChangePassword: true` — token is valid but blocks all endpoints except /change-password."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has accessToken', function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.accessToken).to.be.a('string').and.not.empty;",
+              "    pm.collectionVariables.set('accessToken', body.accessToken);",
+              "    console.log('Token saved:', body.accessToken.substring(0, 30) + '...');",
+              "});",
+              "",
+              "pm.test('tokenType is Bearer', function () {",
+              "    pm.expect(pm.response.json().tokenType).to.equal('Bearer');",
+              "});",
+              "",
+              "pm.test('mustChangePassword is TRUE (first login)', function () {",
+              "    pm.expect(pm.response.json().mustChangePassword).to.be.true;",
+              "});",
+              "",
+              "pm.test('roles contains ACADEMIC_COORDINATOR', function () {",
+              "    const roles = pm.response.json().roles;",
+              "    pm.expect(roles).to.include('ACADEMIC_COORDINATOR');",
+              "});",
+              "",
+              "pm.test('userId and instituteId are UUIDs', function () {",
+              "    const body = pm.response.json();",
+              "    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+              "    pm.expect(body.userId).to.match(uuidRegex);",
+              "    pm.expect(body.instituteId).to.match(uuidRegex);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "200 OK — First login",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n    \"accessToken\": \"eyJhbGciOiJIUzUxMiJ9...\",\n    \"tokenType\": \"Bearer\",\n    \"userId\": \"uuid-here\",\n    \"email\": \"coordinator@pdeu.ac.in\",\n    \"roles\": [\"ACADEMIC_COORDINATOR\"],\n    \"instituteId\": \"uuid-here\",\n    \"mustChangePassword\": true\n}"
+        }
+      ]
+    },
+    {
+      "name": "3. Login — Wrong Password (expect 401)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"coordinator@pdeu.ac.in\",\n    \"password\": \"WrongPassword123!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        },
+        "description": "Negative test — wrong password should return 401 Unauthorized."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 401 for wrong password', function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "",
+              "pm.test('Error message present', function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.message).to.be.a('string').and.not.empty;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "401 Unauthorized — Wrong password",
+          "status": "Unauthorized",
+          "code": 401,
+          "body": "{\n    \"timestamp\": \"2026-04-18T10:00:00\",\n    \"status\": 401,\n    \"error\": \"Unauthorized\",\n    \"message\": \"Invalid email or password\",\n    \"path\": \"/api/auth/login\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "4. Login — Invalid Email Format (expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"not-an-email\",\n    \"password\": \"PDEU@Coord2026\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        },
+        "description": "Bean validation should reject malformed email — 400 Bad Request."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 400 for invalid email', function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. GET /me — BLOCKED (mustChangePassword = true) — expect 403",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/users/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users", "me"]
+        },
+        "description": "Run this BEFORE changing password.\n\nThe JWT filter sees mustChangePassword=true and blocks this request with 403.\n\n**Pre-condition:** Run request #2 first so {{accessToken}} is set."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 403 — password change required', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "pm.test('Error message indicates password change required', function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.message).to.include('Password Change Required');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "403 Forbidden — Password Change Required",
+          "status": "Forbidden",
+          "code": 403,
+          "body": "{\n    \"message\": \"Password Change Required\",\n    \"hint\": \"Please change your password using POST /api/auth/change-password\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "6. Change Password (First Login)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"currentPassword\": \"PDEU@Coord2026\",\n    \"newPassword\": \"NewPDEU@2026!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/change-password",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "change-password"]
+        },
+        "description": "Changes the temporary password. Returns a fresh JWT with `mustChangePassword: false`.\n\n**Password rules:** min 8 chars, must contain uppercase, lowercase, digit, special char (@#$%^&+=!).\n\nThe new token replaces the old one in {{accessToken}} automatically via the test script."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('New accessToken returned', function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.accessToken).to.be.a('string').and.not.empty;",
+              "    pm.collectionVariables.set('accessToken', body.accessToken);",
+              "    console.log('Updated token saved.');",
+              "});",
+              "",
+              "pm.test('mustChangePassword is now FALSE', function () {",
+              "    pm.expect(pm.response.json().mustChangePassword).to.be.false;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "200 OK — Password changed, fresh token",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n    \"accessToken\": \"eyJhbGciOiJIUzUxMiJ9...\",\n    \"tokenType\": \"Bearer\",\n    \"userId\": \"uuid-here\",\n    \"email\": \"coordinator@pdeu.ac.in\",\n    \"roles\": [\"ACADEMIC_COORDINATOR\"],\n    \"instituteId\": \"uuid-here\",\n    \"mustChangePassword\": false\n}"
+        }
+      ]
+    },
+    {
+      "name": "7. Change Password — Wrong Current Password (expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"currentPassword\": \"WrongOldPassword1!\",\n    \"newPassword\": \"AnotherNew@2026!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/change-password",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "change-password"]
+        },
+        "description": "Negative test — wrong current password should return 400 Bad Request."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 400 for wrong current password', function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Change Password — Weak New Password (expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"currentPassword\": \"NewPDEU@2026!\",\n    \"newPassword\": \"weak\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/change-password",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "change-password"]
+        },
+        "description": "Negative test — newPassword too weak / doesn't match regex → 400 validation error."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 400 for weak password', function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. GET /me — SUCCESS (after password change)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/users/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users", "me"]
+        },
+        "description": "Now that mustChangePassword=false the JWT filter lets this through.\n\n**Pre-condition:** Run request #6 first so the updated token is in {{accessToken}}."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has all UserResponse fields', function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.id).to.be.a('string');",
+              "    pm.expect(body.email).to.be.a('string');",
+              "    pm.expect(body.roles).to.be.an('array').and.not.empty;",
+              "    pm.expect(body.instituteId).to.be.a('string');",
+              "    pm.expect(body.instituteName).to.be.a('string');",
+              "    pm.expect(body.mustChangePassword).to.be.false;",
+              "    pm.expect(body.isActive).to.be.true;",
+              "    pm.expect(body.createdAt).to.be.a('string');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "200 OK — User profile",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n    \"id\": \"uuid-here\",\n    \"email\": \"coordinator@pdeu.ac.in\",\n    \"roles\": [\"ACADEMIC_COORDINATOR\"],\n    \"instituteId\": \"uuid-here\",\n    \"instituteName\": \"Pandit Deendayal Energy University\",\n    \"mustChangePassword\": false,\n    \"isActive\": true,\n    \"createdAt\": \"2026-04-18T10:00:00\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "10. GET /me — No Token (expect 401)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/users/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users", "me"]
+        },
+        "description": "No Authorization header — should return 401 Unauthorized."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 401 when no token provided', function () {",
+              "    pm.response.to.have.status(401);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. GET /me — Tampered Token (expect 401)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer eyJhbGciOiJIUzUxMiJ9.TAMPERED.invalidsignature" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/users/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "users", "me"]
+        },
+        "description": "Tampered / invalid JWT — should return 401 Unauthorized."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 401 for tampered token', function () {",
+              "    pm.response.to.have.status(401);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. Forgot Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"coordinator@pdeu.ac.in\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/forgot-password",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "forgot-password"]
+        },
+        "description": "Triggers a password reset email. The email contains a reset link with a token valid for 15 minutes.\n\n**After running:** Check the inbox of coordinator@pdeu.ac.in, copy the token from the reset link, and paste it into the `resetToken` collection variable."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Success message returned', function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.message).to.include('sent');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "200 OK — Reset email sent",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n    \"message\": \"Password reset instructions have been sent to your email.\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "13. Forgot Password — Non-existent Email (expect 200 — no enumeration)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"nobody@unknown.com\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/forgot-password",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "forgot-password"]
+        },
+        "description": "Security note: the API should return the same 200 response for non-existent emails to prevent user enumeration attacks."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Could be 200 (safe enumeration) or 404 depending on implementation",
+              "pm.test('Response received', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "14. Validate Reset Token — Valid",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/validate-reset-token?token={{resetToken}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "validate-reset-token"],
+          "query": [
+            { "key": "token", "value": "{{resetToken}}" }
+          ]
+        },
+        "description": "Validates the reset token from the email before letting the user set a new password.\n\n**Pre-condition:** Set `resetToken` collection variable to the token from the reset email."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200 for valid token', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Message field present', function () {",
+              "    pm.expect(pm.response.json().message).to.be.a('string');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "200 OK — Token is valid",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n    \"message\": \"Token is valid\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "15. Validate Reset Token — Expired / Invalid (expect 400)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/validate-reset-token?token=completely-fake-token-12345",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "validate-reset-token"],
+          "query": [
+            { "key": "token", "value": "completely-fake-token-12345" }
+          ]
+        },
+        "description": "Negative test — invalid / expired token should return 400."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 400 for invalid token', function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "400 Bad Request — Invalid token",
+          "status": "Bad Request",
+          "code": 400,
+          "body": "{\n    \"timestamp\": \"2026-04-18T10:00:00\",\n    \"status\": 400,\n    \"error\": \"Bad Request\",\n    \"message\": \"Invalid or expired token\",\n    \"path\": \"/api/auth/validate-reset-token\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "16. Reset Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"token\": \"{{resetToken}}\",\n    \"newPassword\": \"Reset@PDEU2026!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/reset-password",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "reset-password"]
+        },
+        "description": "Sets a new password using the token from the reset email. Token is single-use and expires in 15 minutes.\n\n**Pre-condition:** Set `resetToken` collection variable first (from the reset email)."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Success message returned', function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.message).to.include('reset successfully');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "200 OK — Password reset",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n    \"message\": \"Password has been reset successfully.\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "17. Reset Password — Weak Password (expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"token\": \"{{resetToken}}\",\n    \"newPassword\": \"weakpass\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/reset-password",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "reset-password"]
+        },
+        "description": "Negative test — newPassword doesn't satisfy complexity rules → 400."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 400 for weak password', function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "18. Login After Password Reset (mustChangePassword = false)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"coordinator@pdeu.ac.in\",\n    \"password\": \"Reset@PDEU2026!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        },
+        "description": "Login with the new password set via reset flow. mustChangePassword should be false — full access granted immediately."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('mustChangePassword is FALSE after reset', function () {",
+              "    pm.expect(pm.response.json().mustChangePassword).to.be.false;",
+              "});",
+              "",
+              "pm.test('New token saved', function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.accessToken).to.be.a('string').and.not.empty;",
+              "    pm.collectionVariables.set('accessToken', body.accessToken);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "200 OK — Full access",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n    \"accessToken\": \"eyJhbGciOiJIUzUxMiJ9...\",\n    \"tokenType\": \"Bearer\",\n    \"userId\": \"uuid-here\",\n    \"email\": \"coordinator@pdeu.ac.in\",\n    \"roles\": [\"ACADEMIC_COORDINATOR\"],\n    \"instituteId\": \"uuid-here\",\n    \"mustChangePassword\": false\n}"
+        }
+      ]
+    },
+    {
+      "name": "19. Re-use Reset Token (expect 400 — single use)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"token\": \"{{resetToken}}\",\n    \"newPassword\": \"AnotherNew@2026!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/reset-password",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "reset-password"]
+        },
+        "description": "Negative test — token was already used in request #16. Should return 400 (token already used)."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 400 — token already used', function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "response": [
+        {
+          "name": "400 Bad Request — Token already used",
+          "status": "Bad Request",
+          "code": 400,
+          "body": "{\n    \"timestamp\": \"2026-04-18T10:00:00\",\n    \"status\": 400,\n    \"error\": \"Bad Request\",\n    \"message\": \"Token has already been used\",\n    \"path\": \"/api/auth/reset-password\"\n}"
+        }
+      ]
+    }
+  ]
+}

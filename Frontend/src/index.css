@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@theme {
+  /* Background Colors */
+  --color-bg-primary: #FAF8F5;
+  --color-bg-secondary: #FFFFFF;
+  --color-bg-sidebar: #1A1A2E;
+  --color-bg-sidebar-hover: #2A2A4E;
+  --color-bg-hover: #F5F0EB;
+  --color-bg-selected: #FFF5EE;
+
+  /* Text Colors */
+  --color-text-primary: #1A1A2E;
+  --color-text-secondary: #6B7280;
+  --color-text-tertiary: #9CA3AF;
+  --color-text-inverse: #FFFFFF;
+  --color-text-accent: #E8734A;
+
+  /* Accent Colors */
+  --color-accent-primary: #F4845F;
+  --color-accent-primary-hover: #E8734A;
+  --color-accent-secondary: #7C3AED;
+  --color-accent-warm: #F59E0B;
+
+  /* Border Colors */
+  --color-border-light: #F0ECE6;
+  --color-border-medium: #E5E0D8;
+  --color-border-dark: #D1CBC2;
+
+  /* Risk Colors */
+  --color-risk-high: #EF4444;
+  --color-risk-high-bg: #FEF2F2;
+  --color-risk-medium: #F59E0B;
+  --color-risk-medium-bg: #FFFBEB;
+  --color-risk-low: #10B981;
+  --color-risk-low-bg: #ECFDF5;
+
+  /* Status Colors */
+  --color-status-success: #10B981;
+  --color-status-success-bg: #ECFDF5;
+  --color-status-warning: #F59E0B;
+  --color-status-warning-bg: #FFFBEB;
+  --color-status-error: #EF4444;
+  --color-status-error-bg: #FEF2F2;
+  --color-status-info: #3B82F6;
+  --color-status-info-bg: #EFF6FF;
+
+  /* Chart Colors */
+  --color-chart-1: #F4845F;
+  --color-chart-2: #7C3AED;
+  --color-chart-3: #10B981;
+  --color-chart-4: #F59E0B;
+  --color-chart-5: #3B82F6;
+  --color-chart-6: #EC4899;
+
+  /* Gradient Colors */
+  --color-gradient-warm-start: #FFF5EE;
+  --color-gradient-warm-end: #FAF8F5;
+  --color-gradient-cool-start: #EFF6FF;
+  --color-gradient-cool-end: #F5E6FF;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* Base styles */
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-medium);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-dark);
+}
