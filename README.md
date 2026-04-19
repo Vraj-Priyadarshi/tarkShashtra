@@ -1,5 +1,5 @@
 <p align="center">
-  <h1 align="center">🎯 TarkShastra</h1>
+  <h1 align="center">🎯 UniWatch</h1>
   <p align="center">
     <strong>AI-Powered Early Academic Risk Detection & Student Intervention Platform</strong>
   </p>
